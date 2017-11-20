@@ -1,0 +1,62 @@
+---
+layout: post
+title: "Java并发编程实践笔记4：任务执行"
+date: 2016-03-31T21:52:32+08:00
+---
+
+任务(task)是一个独立且彼此互不干涉的单元。在设计并发应用程序时，将程序划分成任务往往会简化程序结构，并且提供一个并行执行的自然子结构。
+
+# 在线程中执行任务
+任务是独立的，并且不依赖于其他任务的状态，执行结果或者副作用。我们可以在线程中执行任务。我们有多种任务执行策略。
+
+1.  顺序执行所有任务
+2.  为每一个任务分配一个线程
+3.  使用固定数量的线程来执行所有任务
+
+方案一就是在一个线程中一个一个的执行所有任务，缺点显而易见。所有任务顺序执行，没有很好的利用多处理器，其缺点与单线程程序是一样的。方案二是很多人一拍脑袋就能想出来的，但是也是有明显缺点的。我们不能控制线程的数目，线程数目可以无限大，这就可能导致线程数目超出操作系统及JVM的限制，导致程序崩溃。同时，过多的线程会造成很大的资源开销，包括内存开销，处理器调度开销。由于处理器数目是固定的，只有固定数目的线程可以被同时执行，过多的线程反而不好，并且线程的创建是有开销的，这就必定会造成处理能力的降低。因此第二种方案存在稳定性问题，在实际的生产环境中并不适用，一旦负载过大，就会自然崩溃。第三种方案回避了前两种方案的问题，java标准库也提供了内建的支持。
+
+# Executor框架
+线程池可以有效管理任务的执行。线程池负责管理线程，我们可以将任务提交给线程池，让线程池负责任务的执行。java中提供了了`Executor`接口。
+
+``` java
+public interface Executor {
+    void execute(Runnable command);
+}
+```
+
+`Executor`是一个看起来非常简单的接口，但它形成了一个灵活的异步任务执行框架。`Executor`的实现负责具体的任务执行策略，我们只需要将我们要执行的任务提交给`Executor`就行了。`Executors`类中有许多工厂方法可以为我们提供通用的Executor实现。比如`Executors.newFixedThreadPool`会给我们一个固定线程个数的线程池，`Executors.newCacheThreadPool`会给我们一个只提供缓存线程的线程池，他不会限制线程的个数，但是会缓存已经被创建了的线程，而`Executors.newSingleThreadExecutor`提供一个单一线程线程池，也就是使用一个线程执行所有任务。
+
+# ExecutorService
+`Executor`只是简简单单给我们提供了一个`execute`方法，有时候并不能满足我们的需要。既然我们可以执行一个任务，我们自然而然希望有能力提前终止这个任务。java标准库中提供了`ExecutorServive`接口帮助我们管理任务的生命周期。它提供了`shutdown`，`shutdownNow`，`isShutdown`，`isTerminated`等方法。
+
+# Runnable Callable Future
+`Runnable`代表一个可执行的对象，这个接口仅仅提供一个`run`方法。
+
+``` java
+public interface Runnable {
+    public abstract void run();
+}
+```
+
+`Callable`和`Runnable`只不过多了个返回值，并且可以抛出异常。
+
+``` java
+public interface Callable<V> {
+    V call() throws Exception;
+}
+```
+`Future`接口代表一个异步计算。我们通过`get`方法拿到异步计算的结果，如果计算发生错误，则抛出异常。`FutureTask`是`Future`的一个基本实现。
+
+``` java
+public interface Future<V> {
+    boolean cancel(boolean mayInterruptIfRunning);
+    boolean isCancelled();
+    boolean isDone();
+    V get() throws InterruptedException, ExecutionException;
+    V get(long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException, TimeoutException;
+}
+```
+
+
+
