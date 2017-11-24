@@ -2,7 +2,9 @@
 layout: post
 title: "6model - Data Structures"
 date: 2013-07-26 17:02
-categories: [perl6, 6model, translation]
+categories: 
+- perl6 
+- translation
 ---
 
 本文是[6model/overview.pod](https://github.com/jnthn/6model/blob/master/overview.pod)中一个段落的翻译。
